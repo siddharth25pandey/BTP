@@ -200,7 +200,7 @@ public class DatacenterBroker extends SimEntity {
 		setDatacenterIdsList(CloudSim.getCloudResourceList());
 		setDatacenterCharacteristicsList(new HashMap<Integer, DatacenterCharacteristics>());
 
-		Log.printLine(CloudSim.clock() + ": " + getName() + ": Cloud Resource List received with "
+		System.out.println(CloudSim.clock() + ": " + getName() + ": Cloud Resource List received with "
 				+ getDatacenterIdsList().size() + " resource(s)");
 
 		for (Integer datacenterId : getDatacenterIdsList()) {
@@ -224,11 +224,11 @@ public class DatacenterBroker extends SimEntity {
 		if (result == CloudSimTags.TRUE) {
 			getVmsToDatacentersMap().put(vmId, datacenterId);
 			getVmsCreatedList().add(VmList.getById(getVmList(), vmId));
-			Log.printLine(CloudSim.clock() + ": " + getName() + ": VM #" + vmId
+			System.out.println(CloudSim.clock() + ": " + getName() + ": VM #" + vmId
 					+ " has been created in Datacenter #" + datacenterId + ", Host #"
 					+ VmList.getById(getVmsCreatedList(), vmId).getHost().getId());
 		} else {
-			Log.printLine(CloudSim.clock() + ": " + getName() + ": Creation of VM #" + vmId
+			System.out.println(CloudSim.clock() + ": " + getName() + ": Creation of VM #" + vmId
 					+ " failed in Datacenter #" + datacenterId);
 		}
 
@@ -252,7 +252,7 @@ public class DatacenterBroker extends SimEntity {
 				if (getVmsCreatedList().size() > 0) { // if some vm were created
 					submitCloudlets();
 				} else { // no vms created. abort
-					Log.printLine(CloudSim.clock() + ": " + getName()
+					System.out.println(CloudSim.clock() + ": " + getName()
 							+ ": none of the required VMs could be created. Aborting");
 					finishExecution();
 				}
@@ -268,13 +268,14 @@ public class DatacenterBroker extends SimEntity {
 	 * @post $none
 	 */
 	protected void processCloudletReturn(SimEvent ev) {
+		
 		Cloudlet cloudlet = (Cloudlet) ev.getData();
 		getCloudletReceivedList().add(cloudlet);
-		Log.printLine(CloudSim.clock() + ": " + getName() + ": Cloudlet " + cloudlet.getCloudletId()
+		System.out.println(CloudSim.clock() + ": " + getName() + ": Cloudlet " + cloudlet.getCloudletId()
 				+ " received");
 		cloudletsSubmitted--;
 		if (getCloudletList().size() == 0 && cloudletsSubmitted == 0) { // all cloudlets executed
-			Log.printLine(CloudSim.clock() + ": " + getName() + ": All Cloudlets executed. Finishing...");
+			System.out.println(CloudSim.clock() + ": " + getName() + ": All Cloudlets executed. Finishing...");
 			clearDatacenters();
 			finishExecution();
 		} else { // some cloudlets haven't finished yet
@@ -286,6 +287,7 @@ public class DatacenterBroker extends SimEntity {
 			}
 
 		}
+		System.out.println("cpu     *****   "+vmList.get(3).getTotalUtilizationOfCpu(System.currentTimeMillis()));
 	}
 
 	/**
@@ -298,11 +300,11 @@ public class DatacenterBroker extends SimEntity {
 	 */
 	protected void processOtherEvent(SimEvent ev) {
 		if (ev == null) {
-			Log.printLine(getName() + ".processOtherEvent(): " + "Error - an event is null.");
+			System.out.println(getName() + ".processOtherEvent(): " + "Error - an event is null.");
 			return;
 		}
 
-		Log.printLine(getName() + ".processOtherEvent(): "
+		System.out.println(getName() + ".processOtherEvent(): "
 				+ "Error - event unknown by this DatacenterBroker.");
 	}
 
@@ -319,7 +321,7 @@ public class DatacenterBroker extends SimEntity {
 		String datacenterName = CloudSim.getEntityName(datacenterId);
 		for (Vm vm : getVmList()) {
 			if (!getVmsToDatacentersMap().containsKey(vm.getId())) {
-				Log.printLine(CloudSim.clock() + ": " + getName() + ": Trying to Create VM #" + vm.getId()
+				System.out.println(CloudSim.clock() + ": " + getName() + ": Trying to Create VM #" + vm.getId()
 						+ " in " + datacenterName);
 				sendNow(datacenterId, CloudSimTags.VM_CREATE_ACK, vm);
 				requestedVms++;
@@ -339,27 +341,47 @@ public class DatacenterBroker extends SimEntity {
 	 * @post $none
 	 */
 	protected void submitCloudlets() {
-		int vmIndex = 0;
-		for (Cloudlet cloudlet : getCloudletList()) {
+		
+		int length=getVmsCreatedList().size();
+        vml[] vmlistne = new vml[length];
+        for(int i=0;i<length;i++)
+        {
+        vmlistne[i]=new vml();
+        vmlistne[i].id=i;
+        vmlistne[i].mips=0;}
+        for (Cloudlet cloudlet : getCloudletList()) {
+       
+        sort(vmlistne);
+            int vmIndex;
+		
+		
 			Vm vm;
-			// if user didn't bind this cloudlet and it has not been executed yet
+			vmIndex = vmlistne[0].id;
+			System.out.println("vmindex "+vmIndex +"      cpu utilization"+vmList.get(vmIndex).getTotalUtilizationOfCpu(System.currentTimeMillis()));
 			if (cloudlet.getVmId() == -1) {
 				vm = getVmsCreatedList().get(vmIndex);
+				System.out.println("hello");
 			} else { // submit to the specific vm
 				vm = VmList.getById(getVmsCreatedList(), cloudlet.getVmId());
 				if (vm == null) { // vm was not created
-					Log.printLine(CloudSim.clock() + ": " + getName() + ": Postponing execution of cloudlet "
+					System.out.println(CloudSim.clock() + ": " + getName() + ": Postponing execution of cloudlet "
 							+ cloudlet.getCloudletId() + ": bount VM not available");
 					continue;
 				}
 			}
 
-			Log.printLine(CloudSim.clock() + ": " + getName() + ": Sending cloudlet "
+			System.out.println(CloudSim.clock() + ": " + getName() + ": Sending cloudlet "
 					+ cloudlet.getCloudletId() + " to VM #" + vm.getId());
 			cloudlet.setVmId(vm.getId());
 			sendNow(getVmsToDatacentersMap().get(vm.getId()), CloudSimTags.CLOUDLET_SUBMIT, cloudlet);
 			cloudletsSubmitted++;
-			vmIndex = (vmIndex + 1) % getVmsCreatedList().size();
+			for(int i=0;i<length;i++)
+			{
+				if(vmIndex==vmlistne[i].id)
+					vmlistne[i].mips+=cloudlet.getCloudletLength()/vmList.get(vmIndex).getMips();
+				//System.out.println(vmlistne[i]);
+		
+			}
 			getCloudletSubmittedList().add(cloudlet);
 		}
 
@@ -377,7 +399,7 @@ public class DatacenterBroker extends SimEntity {
 	 */
 	protected void clearDatacenters() {
 		for (Vm vm : getVmsCreatedList()) {
-			Log.printLine(CloudSim.clock() + ": " + getName() + ": Destroying VM #" + vm.getId());
+			System.out.println(CloudSim.clock() + ": " + getName() + ": Destroying VM #" + vm.getId());
 			sendNow(getVmsToDatacentersMap().get(vm.getId()), CloudSimTags.VM_DESTROY, vm);
 		}
 
@@ -400,7 +422,7 @@ public class DatacenterBroker extends SimEntity {
 	 */
 	@Override
 	public void shutdownEntity() {
-		Log.printLine(getName() + " is shutting down...");
+		System.out.println(getName() + " is shutting down...");
 	}
 
 	/*
@@ -409,7 +431,7 @@ public class DatacenterBroker extends SimEntity {
 	 */
 	@Override
 	public void startEntity() {
-		Log.printLine(getName() + " is starting...");
+		System.out.println(getName() + " is starting...");
 		schedule(getId(), 0, CloudSimTags.RESOURCE_CHARACTERISTICS_REQUEST);
 	}
 
@@ -651,5 +673,187 @@ public class DatacenterBroker extends SimEntity {
 	protected void setDatacenterRequestedIdsList(List<Integer> datacenterRequestedIdsList) {
 		this.datacenterRequestedIdsList = datacenterRequestedIdsList;
 	}
+	private static int N;
+   
+    /*public static void sort(vml arr[])
+    {       
+        heapify(arr);        
+        for (int i = N; i > 0; i--)
+        {
+            swap(arr,0, i);
+            N = N-1;
+            maxheap(arr, 0);
+        }
+        Log.printLine("Heap Sort Used: ");
+        
+    }     
+    public static void heapify(vml arr[])
+    {
+        N = arr.length-1;
+        for (int i = N/2; i >= 0; i--)
+            maxheap(arr, i);        
+    }
+       
+    public static void maxheap(vml arr[], int i)
+    { 
+        int left = 2*i ;
+        int right = 2*i + 1;
+        int max = i;
+        
+        if (left <= N && arr[left].mips >arr[i].mips)
+            max = left;
+        else if (right <= N && arr[right].mips >arr[max].mips)        
+            max = right;
+ 
+        if (max != i)
+        {
+            swap(arr, i, max);
+            maxheap(arr, max);
+        }
+        
+    }    */
+	
+	
+    /*public static int partition(vml arr[], int low, int high)
+	{
+		double pivot = arr[high].mips; // pivot
+	    int i = (low - 1); // Index of smaller element and indicates the right position of pivot found so far
+	 
+	    for (int j = low; j <= high - 1; j++)
+	    {
+	        // If current element is smaller than the pivot
+	        if (arr[j].mips < pivot)
+	        {
+	            i++; // increment index of smaller element
+	            swap(arr,i,j);
+	        }
+	    }
+	    swap(arr,i+1,high);
+	    return (i + 1);
+	}
+	public static void quicksort(vml arr[], int low, int high)
+	{
+		if (low < high)
+	    {
+	       
+	        int pi = partition(arr, low, high);
+	 
+	        // Separately sort elements before
+	        // partition and after partition
+	        quicksort(arr, low, pi - 1);
+	        quicksort(arr, pi + 1, high);
+	    }
+	}
+	public static void sort(vml arr[])
+	{
+		quicksort(arr,0,N-1);
+	}*/
+	
+	
+	/*void sort(vml V[])
+	{
+	   
+	    int i, j;
+	 
+	    for (i = 1; i < N; i++) {
+	        j = i;
+	 
+	        // Insert V[i] into list 0..i-1
+	        while (j > 0 && V[j].mips < V[j - 1].mips) {
+	 
+	            // Swap V[j] and V[j-1]
+	            swap(V,j,j-1);
+	 
+	            // Decrement j by 1
+	            j -= 1;
+	        }
+	    }
+	}*/
+	
+	
+	
+	 public static void merge(vml arr[], int l, int m, int r)
+    {
+       
+        int n1 = m - l + 1;
+        int n2 = r - m;
+  
+      
+        vml L[] = new vml[n1];
+        vml R[] = new vml[n2];
+  
+       
+        for (int i = 0; i < n1; ++i)
+            L[i].mips = arr[l + i].mips;
+        for (int j = 0; j < n2; ++j)
+            R[j].mips = arr[m + 1 + j].mips;
+  
+       
+        int i = 0, j = 0;
+  
+        
+        int k = l;
+        while (i < n1 && j < n2) {
+            if (L[i].mips <= R[j].mips) {
+                arr[k].mips = L[i].mips;
+                i++;
+            }
+            else {
+                arr[k].mips = R[j].mips;
+                j++;
+            }
+            k++;
+        }
+  
+        
+        while (i < n1) {
+            arr[k].mips = L[i].mips;
+            i++;
+            k++;
+        }
+  
+      
+        while (j < n2) {
+            arr[k].mips = R[j].mips;
+            j++;
+            k++;
+        }
+    }
+  
+   
+	 public static void mergesort(vml arr[], int l, int r)
+    {
+        if (l < r) {
+          
+            int m = l+ (r-l)/2;
+  
+           
+            mergesort(arr, l, m);
+            mergesort(arr, m + 1, r);
+  
+          
+            merge(arr, l, m, r);
+            Log.printLine("Merge Sort Used: ");
+        }
+    }
+    public static void sort(vml arr[])
+	{
+		mergesort(arr,0,N-1);
+	}
+    /* Function to swap two numbers in an array */
+    public static void swap(vml arr[], int i, int j)
+    {
+        double tmp = arr[i].mips;
+        arr[i].mips = arr[j].mips;
+        arr[j].mips = tmp; 
+        int tmpr = arr[i].id;
+        arr[i].id = arr[j].id;
+        arr[j].id = tmpr;
+    }
+    
+}
+class vml {
 
+    int id;
+    double mips;
 }
